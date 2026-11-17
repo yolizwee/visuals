@@ -1,5 +1,5 @@
 -- AETHER VISUALS V2 / single-file CLIENT-ONLY cosmetics
--- Insert to open. Nothing is sent to a remote server.
+-- Click the bottom-center Liquid Glass dock to open or close. No keyboard shortcut.
 -- 48 procedural wing designs; local Lighting and character effects.
 -- PNG textures need actual uploaded Roblox asset IDs; default works without them.
 -- Best-effort compatibility: game clients vary, not tested inside an executor.
@@ -51,7 +51,7 @@ sessionEnv.AETHER_V2_CLOSE=cleanup
 -- ===== Config =====
 local Config = (function()
 local Config = {}
-Config.Version = "2.0.0"
+Config.Version = "2.1.0"
 Config.Default = {
     wing = "classic_angel", theme = "Arctic Glass", preset = "Balanced",
     quality = "Balanced", scale = 1, spread = 1, flapSpeed = 1,
@@ -1098,10 +1098,86 @@ local footerStatus=txt(top,"●  READY",10,palette().accent,{Position=UDim2.new(
 local notifications=create(gui,"Frame",{Name="AetherToasts",Position=UDim2.new(1,-274,0,28),
     Size=UDim2.fromOffset(252,270),BackgroundTransparency=1})
 local toastList=create(notifications,"UIListLayout",{Padding=UDim.new(0,8),SortOrder=Enum.SortOrder.LayoutOrder})
-local mobileButton=button(gui,"A",UDim2.fromOffset(54,54),function() end,true)
-mobileButton.Position=UDim2.new(0,14,1,-75)
-mobileButton.TextSize=23
-mobileButton.Visible=UIS.TouchEnabled
+-- ===== AETHER LIQUID DOCK: always visible near the bottom center =====
+-- This is a regular Roblox GUI button and does not depend on an executor API.
+local dockRest=UDim2.new(.5,0,1,-74)
+local dockShadow=create(gui,"Frame",{
+    Name="DockSoftShadow",AnchorPoint=Vector2.new(.5,.5),Position=dockRest,
+    Size=UDim2.fromOffset(493,81),BackgroundColor3=Color3.fromRGB(0,0,0),
+    BackgroundTransparency=.62,BorderSizePixel=0,ZIndex=8})
+round(dockShadow,27)
+local dock=create(gui,"TextButton",{
+    Name="AetherLiquidDock",AnchorPoint=Vector2.new(.5,.5),
+    Position=UDim2.new(.5,0,1,45),Size=UDim2.fromOffset(478,67),
+    BackgroundColor3=palette().panel,BackgroundTransparency=.11,
+    BorderSizePixel=0,Text="",AutoButtonColor=false,ClipsDescendants=true,ZIndex=10})
+round(dock,23)
+local dockScale=create(dock,"UIScale",{Scale=1})
+local dockShadowScale=create(dockShadow,"UIScale",{Scale=1})
+local dockBorder=stroke(dock,palette().accent,.48,1.5)
+local dockGradient=create(dock,"UIGradient",{Rotation=18,Color=ColorSequence.new({
+    ColorSequenceKeypoint.new(0,Color3.fromRGB(35,47,65)),
+    ColorSequenceKeypoint.new(.45,Color3.fromRGB(18,25,38)),
+    ColorSequenceKeypoint.new(1,Color3.fromRGB(28,41,57))})})
+local dockTopline=create(dock,"Frame",{
+    Name="GlassHighlight",Position=UDim2.fromOffset(23,1),Size=UDim2.new(1,-46,0,2),
+    BackgroundColor3=Color3.fromRGB(255,255,255),BackgroundTransparency=.68,
+    BorderSizePixel=0,ZIndex=11})
+round(dockTopline,2)
+local dockLogo=create(dock,"Frame",{
+    Position=UDim2.fromOffset(12,11),Size=UDim2.fromOffset(46,46),
+    BackgroundColor3=palette().accent,BackgroundTransparency=.08,ZIndex=11})
+round(dockLogo,15)
+local dockLogoText=txt(dockLogo,"A",23,palette().bg,{
+    Position=UDim2.fromScale(0,0),Size=UDim2.fromScale(1,1),
+    Font=Enum.Font.GothamBold,TextXAlignment=Enum.TextXAlignment.Center,ZIndex=12})
+local dockBrand=txt(dock,"A E T H E R",15,palette().text,{
+    Position=UDim2.fromOffset(72,10),Size=UDim2.fromOffset(140,25),
+    Font=Enum.Font.GothamBold,ZIndex=11})
+local dockLabel=txt(dock,"VISUAL ENGINE   /   V2",9,palette().muted,{
+    Position=UDim2.fromOffset(73,35),Size=UDim2.fromOffset(155,18),ZIndex=11})
+local dockDivider=create(dock,"Frame",{
+    Position=UDim2.fromOffset(228,13),Size=UDim2.fromOffset(1,42),
+    BackgroundColor3=palette().accent,BackgroundTransparency=.78,
+    BorderSizePixel=0,ZIndex=11})
+local dockInfo=txt(dock,"60 FPS   ·   BALANCED",12,palette().text,{
+    Position=UDim2.fromOffset(245,11),Size=UDim2.fromOffset(174,23),
+    Font=Enum.Font.GothamMedium,ZIndex=11})
+local dockSub=txt(dock,"CLASSIC ANGEL  ·  READY",9,palette().muted,{
+    Position=UDim2.fromOffset(245,35),Size=UDim2.fromOffset(176,18),ZIndex=11})
+local dockArrowBG=create(dock,"Frame",{
+    Position=UDim2.fromOffset(430,17),Size=UDim2.fromOffset(32,34),
+    BackgroundColor3=palette().accent,BackgroundTransparency=.8,ZIndex=11})
+round(dockArrowBG,11)
+local dockAction=txt(dockArrowBG,"⌃",19,palette().text,{
+    Position=UDim2.fromScale(0,0),Size=UDim2.fromScale(1,1),
+    TextXAlignment=Enum.TextXAlignment.Center,Font=Enum.Font.GothamBold,ZIndex=12})
+local function updateDockInfo()
+    local wing=Wings.ById[state.wing]
+    local wingName=wing and wing.name or "NO WINGS"
+    dockInfo.Text=string.format("%d FPS   ·   %s",math.round(frameAverage),string.upper(state.quality))
+    dockSub.Text=string.upper(wingName).."  ·  "..(open and "OPEN" or "READY")
+end
+local function fitDock()
+    local camera=workspace.CurrentCamera
+    local viewport=camera and camera.ViewportSize or Vector2.new(1280,720)
+    local scale=math.clamp((viewport.X-26)/493,.5,1)
+    dockScale.Scale=scale
+    dockShadowScale.Scale=scale
+    local bottom=UIS.TouchEnabled and 55 or 74
+    dockRest=UDim2.new(.5,0,1,-bottom)
+    dockShadow.Position=dockRest
+    if not open then dock.Position=dockRest end
+end
+-- The bar itself is the only open/close control; no Insert key needed.
+dock.MouseEnter:Connect(function()
+    tw(dock,{BackgroundTransparency=.02},.2)
+    tw(dockArrowBG,{BackgroundTransparency=.6},.2)
+end)
+dock.MouseLeave:Connect(function()
+    tw(dock,{BackgroundTransparency=.11},.24)
+    tw(dockArrowBG,{BackgroundTransparency=.8},.24)
+end)
 
 local function toast(message)
     local p=palette()
@@ -1492,7 +1568,7 @@ local function fillPage()
             Visual.ApplyPreset(state.preset,not state.reducedMotion)
             updateEffects();refreshTheme();toast("Defaults restored")
         end)
-        tile(list,"CONTROLS","Insert: open or close menu · drag toolbar to move · on mobile use A button.")
+        tile(list,"CONTROLS","Tap the floating Liquid Glass bar below to open or close · drag the toolbar to move the window.")
     end
 end
 redrawPage=function()
@@ -1529,23 +1605,46 @@ refreshTheme=function()
     subbrand.TextColor3=p.muted
     separator.BackgroundColor3=p.accent
     footerStatus.TextColor3=p.accent
+    dock.BackgroundColor3=p.panel
+    dockBorder.Color=p.accent
+    dockLogo.BackgroundColor3=p.accent
+    dockLogoText.TextColor3=p.bg
+    dockBrand.TextColor3=p.text
+    dockLabel.TextColor3=p.muted
+    dockInfo.TextColor3=p.text
+    dockSub.TextColor3=p.muted
+    dockDivider.BackgroundColor3=p.accent
+    dockArrowBG.BackgroundColor3=p.accent
+    dockAction.TextColor3=p.text
+    dockGradient.Color=ColorSequence.new({
+        ColorSequenceKeypoint.new(0,p.panel:Lerp(p.accent,.25)),
+        ColorSequenceKeypoint.new(.5,p.panel),
+        ColorSequenceKeypoint.new(1,p.panel:Lerp(p.accent,.12))})
+    updateDockInfo()
     redrawNav();redrawPage();updateEffects()
 end
 
 local function targetSize()
     local viewport=workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1280,720)
-    local fit=math.min(1,(viewport.X-34)/720,(viewport.Y-50)/480)
+    local fit=math.min(1,(viewport.X-34)/720,(viewport.Y-158)/480)
     fitScale=math.max(.33,fit)
     return UDim2.fromOffset(720,480)
+end
+local function menuCenter()
+    return UDim2.fromScale(.5,.43)
 end
 local function setOpen(value)
     motionToken+=1
     local token=motionToken
     open=value
     if currentTween then currentTween:Cancel();currentTween=nil end
+    dockAction.Text=value and "⌄" or "⌃"
+    tw(dockArrowBG,{BackgroundTransparency=value and .52 or .8},.22)
+    updateDockInfo()
     if state.reducedMotion then
         window.Visible=value;shade.Visible=value
         window.Size=targetSize();windowScale.Scale=fitScale*state.uiScale
+        window.Position=menuCenter()
         window.GroupTransparency=value and 0 or 1
         shade.BackgroundTransparency=value and .55 or 1
         blur.Size=value and 8 or 0
@@ -1555,32 +1654,31 @@ local function setOpen(value)
         local finalSize=targetSize()
         windowScale.Scale=fitScale*state.uiScale
         window.Visible=true;shade.Visible=true
-        window.Size=UDim2.fromOffset(14,14)
-        window.GroupTransparency=.35
-        tw(shade,{BackgroundTransparency=.57},.38)
-        tw(blur,{Size=8},.42)
-        local stage=tw(window,{Size=UDim2.fromOffset(150,28),GroupTransparency=.11},.17)
-        currentTween=stage
-        task.delay(.18,function()
-            if token~=motionToken then return end
-            currentTween=tw(window,{Size=finalSize,GroupTransparency=0},.45,Enum.EasingStyle.Back)
-        end)
+        window.Position=dockRest
+        window.Size=UDim2.fromOffset(340,59)
+        window.GroupTransparency=.72
+        tw(shade,{BackgroundTransparency=.58},.4)
+        tw(blur,{Size=8},.45)
+        currentTween=tw(window,{
+            Position=menuCenter(),Size=finalSize,GroupTransparency=0
+        },.52,Enum.EasingStyle.Quint)
     else
-        currentTween=tw(window,{Size=UDim2.fromOffset(135,23),GroupTransparency=1},.28)
-        tw(shade,{BackgroundTransparency=1},.32)
-        tw(blur,{Size=0},.25)
-        task.delay(.33,function()
-            if token~=motionToken then return end
+        currentTween=tw(window,{
+            Position=dockRest,Size=UDim2.fromOffset(340,59),GroupTransparency=1
+        },.38,Enum.EasingStyle.Quint)
+        tw(shade,{BackgroundTransparency=1},.37)
+        tw(blur,{Size=0},.31)
+        task.delay(.39,function()
+            if not active or token~=motionToken then return end
             window.Visible=false;shade.Visible=false
         end)
     end
 end
 close.MouseButton1Click:Connect(function()setOpen(false)end)
-mobileButton.MouseButton1Click:Connect(function()setOpen(not open)end)
-track(UIS.InputBegan:Connect(function(input,consumed)
-    if not active or consumed or UIS:GetFocusedTextBox() then return end
-    if input.KeyCode==Enum.KeyCode.Insert then setOpen(not open) end
-end))
+dock.MouseButton1Click:Connect(function()
+    if active then setOpen(not open) end
+end)
+-- AETHER is intentionally controlled by clicking the dock, not keyboard shortcuts.
 -- Toolbar dragging, clamped to viewport.
 local dragging=false
 local dragOrigin
@@ -1619,7 +1717,10 @@ track(RunService.RenderStepped:Connect(function(dt)
             lastViewport=camera.ViewportSize
             targetSize()
             windowScale.Scale=fitScale*state.uiScale
+            fitDock()
+            if open and window.Visible then window.Size=targetSize() end
         end
+        updateDockInfo()
     end
 end))
 redrawNav();redrawPage()
@@ -1627,5 +1728,9 @@ Visual.ApplyPreset(state.preset,false)
 refreshTheme()
 reEquip()
 updateEffects()
-toast("AETHER client mode  ·  Insert to open")
+fitDock()
+-- Enter smoothly from below the screen after the UI is ready.
+dock.Position=UDim2.new(.5,0,1,45)
+tw(dock,{Position=dockRest},.72,Enum.EasingStyle.Quint)
+toast("AETHER ready  ·  Tap the glass bar below")
 -- Unload this instance: getgenv().AETHER_V2_CLOSE() when supported.
